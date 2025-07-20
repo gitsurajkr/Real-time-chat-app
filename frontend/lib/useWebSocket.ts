@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
 export interface wsMessage {
-    type: 'SUBSCRIBE' | 'UNSUBSCRIBE' | 'sendMessage'
+    type: 'SUBSCRIBE' | 'UNSUBSCRIBE' | 'sendMessage' | 'USER_JOIN' | 'USER_LEAVE' | 'HEARTBEAT'
     room?: string,
     roomId?: string
+    username?: string
     message?: {
         id: string
         content: string
@@ -16,9 +17,10 @@ export interface wsMessage {
 }
 
 export interface RecieveMessage {
-    type: "RECEIVER_MESSAGE",
+    type: "RECEIVER_MESSAGE" | "USER_JOINED" | "USER_LEFT" | "USER_ONLINE" | "USER_OFFLINE",
     roomId: string,
-    message: {
+    username?: string,
+    message?: {
         id: string,
         content: string,
         username: string,
@@ -195,6 +197,36 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
         }
     }, [])
 
+    const joinRoom = useCallback((roomId: string, username: string) => {
+        if (wsref.current?.readyState === WebSocket.OPEN) {
+            console.log("User joining room: ", { type: 'USER_JOIN', roomId, username })
+            wsref.current.send(JSON.stringify({ type: 'USER_JOIN', roomId, username }))
+            return true
+        } else {
+            console.warn('WebSocket is not connected. Cannot join room:', roomId)
+            return false
+        }
+    }, [])
+
+    const leaveRoom = useCallback((roomId: string, username: string) => {
+        if (wsref.current?.readyState === WebSocket.OPEN) {
+            console.log("User leaving room: ", { type: 'USER_LEAVE', roomId, username })
+            wsref.current.send(JSON.stringify({ type: 'USER_LEAVE', roomId, username }))
+            return true
+        } else {
+            console.warn('WebSocket is not connected. Cannot leave room:', roomId)
+            return false
+        }
+    }, [])
+
+    const sendHeartbeat = useCallback((roomId: string, username: string) => {
+        if (wsref.current?.readyState === WebSocket.OPEN) {
+            wsref.current.send(JSON.stringify({ type: 'HEARTBEAT', roomId, username }))
+            return true
+        }
+        return false
+    }, [])
+
 
     useEffect(() => {
         // Disconnect any existing connection before connecting to new URL
@@ -217,6 +249,9 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
         subscribeToRoom,
         unsubscribeToRoom,
         sendChatMessage,
+        joinRoom,
+        leaveRoom,
+        sendHeartbeat,
         connect,
         disconnect
     }

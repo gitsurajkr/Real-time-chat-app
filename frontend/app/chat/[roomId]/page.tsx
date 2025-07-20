@@ -55,19 +55,18 @@ export default function ChatRoom() {
     useEffect(() => {
         scrollToBottom()
     }, [messages])
-
     // WebSocket connection
-    const { isConnected, error, subscribeToRoom, unsubscribeToRoom, sendChatMessage } = useWebsocket({
+    const { isConnected, error, subscribeToRoom, unsubscribeToRoom, sendChatMessage, joinRoom, leaveRoom, sendHeartbeat } = useWebsocket({
         // check here 
         url: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080',
         onMessage: (data: RecieveMessage) => {
             if (data.type === 'RECEIVER_MESSAGE' && data.roomId === roomId) {
                 const newMessage: Message = {
-                    id: data.message.id,
-                    content: data.message.content,
-                    username: data.message.username,
-                    timestamp: new Date(data.message.timestamp),
-                    isOwn: data.message.username === username
+                    id: data.message!.id,
+                    content: data.message!.content,
+                    username: data.message!.username,
+                    timestamp: new Date(data.message!.timestamp),
+                    isOwn: data.message!.username === username
                 }
 
                 // Add message only if it doesn't already exist (avoid duplicates)
@@ -81,40 +80,127 @@ export default function ChatRoom() {
 
                 // Add user to online users if not already present
                 setUsers((prev) => {
-                    const userExists = prev.find(u => u.username === data.message.username)
-                    if (!userExists && data.message.username !== username) {
+                    const userExists = prev.find(u => u.username === data.message!.username)
+                    if (!userExists && data.message!.username !== username) {
                         return [...prev, {
-                            username: data.message.username,
+                            username: data.message!.username,
                             joinedAt: new Date(),
                             isOnline: true
                         }]
+                    } else if (userExists && data.message!.username !== username) {
+                        // Mark user as online if they were offline
+                        return prev.map(user => 
+                            user.username === data.message!.username 
+                                ? { ...user, isOnline: true }
+                                : user
+                        )
                     }
                     return prev
                 })
             }
+            
+            // Handle user join/leave events
+            if (data.type === 'USER_JOINED' && data.username && data.username !== username) {
+                setUsers((prev) => {
+                    const userExists = prev.find(u => u.username === data.username)
+                    if (!userExists) {
+                        return [...prev, {
+                            username: data.username!,
+                            joinedAt: new Date(),
+                            isOnline: true
+                        }]
+                    } else {
+                        return prev.map(user => 
+                            user.username === data.username 
+                                ? { ...user, isOnline: true }
+                                : user
+                        )
+                    }
+                })
+            }
+            
+            if (data.type === 'USER_LEFT' && data.username && data.username !== username) {
+                setUsers((prev) => prev.map(user => 
+                    user.username === data.username 
+                        ? { ...user, isOnline: false, lastSeen: new Date() }
+                        : user
+                ))
+            }
+            
+            // Handle heartbeat-based online status updates
+            if (data.type === 'USER_ONLINE' && data.username && data.username !== username) {
+                setUsers((prev) => {
+                    const userExists = prev.find(u => u.username === data.username)
+                    if (!userExists) {
+                        return [...prev, {
+                            username: data.username!,
+                            joinedAt: new Date(),
+                            isOnline: true
+                        }]
+                    } else {
+                        return prev.map(user => 
+                            user.username === data.username 
+                                ? { ...user, isOnline: true }
+                                : user
+                        )
+                    }
+                })
+            }
+            
+            if (data.type === 'USER_OFFLINE' && data.username && data.username !== username) {
+                setUsers((prev) => prev.map(user => 
+                    user.username === data.username 
+                        ? { ...user, isOnline: false, lastSeen: new Date() }
+                        : user
+                ))
+            }
         },
         onConnect: () => {
             console.log('Connected to chat server')
+            // Join the room when connected
+            if (roomId && username) {
+                joinRoom(roomId, username)
+            }
         },
         onDisconnect: () => {
             console.log('Disconnected from chat server')
+            // Mark current user as offline in UI
+            setUsers((prev) => prev.map(user => 
+                user.username === username 
+                    ? { ...user, isOnline: false, lastSeen: new Date() }
+                    : user
+            ))
         }
     })
 
     useEffect(() => {
         if (isConnected && roomId) {
-            // console.log(`Subscribing to room: ${roomId}`)
+            // Subscribe to room and join as user
             subscribeToRoom(roomId)
+            joinRoom(roomId, username)
         }
 
         return () => {
             if (roomId) {
-                // console.log(`Unsubscribing from room: ${roomId}`)
+                // Leave room and unsubscribe when component unmounts
+                leaveRoom(roomId, username)
                 unsubscribeToRoom(roomId)
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isConnected, roomId]) 
+    }, [isConnected, roomId])
+
+    // Heartbeat system to keep user online
+    useEffect(() => {
+        if (!isConnected || !roomId || !username) return
+
+        const heartbeatInterval = setInterval(() => {
+            sendHeartbeat(roomId, username)
+        }, 15000) // Send heartbeat every 15 seconds
+
+        return () => clearInterval(heartbeatInterval)
+    }, [isConnected, roomId, username, sendHeartbeat])
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         if (!input.trim() || !isConnected) return
@@ -207,7 +293,7 @@ export default function ChatRoom() {
     }
 
     return (
-        <div className="flex h-screen max-h-screen bg-gray-50 overflow-hidden">
+        <div className="flex h-[100dvh] max-h-[100dvh] bg-gray-50 overflow-hidden">
             {/* Sidebar */}
             <div className="hidden lg:flex lg:w-80 bg-white border-r border-gray-200 flex-col">
                 <div className="p-4 border-b border-gray-200 flex-shrink-0">
@@ -400,23 +486,23 @@ export default function ChatRoom() {
             )}
 
             {/* Chat Area */}
-            <div className="flex-1 flex flex-col min-w-0 h-screen max-h-screen">
-                <Card className="flex-1 m-2 md:m-4 shadow-sm flex flex-col h-full max-h-full overflow-hidden gap-0">
+            <div className="flex-1 flex flex-col min-w-0 h-[100dvh] max-h-[100dvh]">
+                <Card className="flex-1 m-1 md:m-4 shadow-sm flex flex-col h-full max-h-full overflow-hidden gap-0 rounded-none md:rounded-lg">
                     {/* Sticky Header */}
-                    <CardHeader className="sticky top-0 z-10 border-b bg-white/95 backdrop-blur-sm p-3 md:p-4 flex-shrink-0">
+                    <CardHeader className="sticky top-0 z-10 border-b bg-white/95 backdrop-blur-sm p-2 md:p-4 flex-shrink-0">
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-2 md:space-x-3">
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => router.push("/")}
-                                    className="p-2 lg:hidden"
+                                    className="p-1 md:p-2 lg:hidden"
                                 >
                                     <ArrowLeft className="h-4 w-4" />
                                 </Button>
                                 <div className="">
                                     <div className="flex items-center space-x-2">
-                                        <h1 className="text-base md:text-lg font-semibold text-gray-900">Room {roomId}</h1>
+                                        <h1 className="text-sm md:text-lg font-semibold text-gray-900">Room {roomId}</h1>
                                         {isConnected ? (
                                             <Wifi className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
                                         ) : (
@@ -435,12 +521,12 @@ export default function ChatRoom() {
                                     </p>
                                 </div>
                             </div>
-                            <div className="lg:hidden flex items-center space-x-2">
+                            <div className="lg:hidden flex items-center space-x-1">
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setShowUsersList(true)}
-                                    className="bg-transparent p-1 h-8 w-8"
+                                    className="bg-transparent p-1 h-7 w-7 md:h-8 md:w-8"
                                 >
                                     <Users className="h-3 w-3" />
                                 </Button>
@@ -448,7 +534,7 @@ export default function ChatRoom() {
                                     variant="outline"
                                     size="sm"
                                     onClick={copyRoomId}
-                                    className="bg-transparent p-1 h-8 w-8"
+                                    className="bg-transparent p-1 h-7 w-7 md:h-8 md:w-8"
                                 >
                                     {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                                 </Button>
@@ -458,7 +544,7 @@ export default function ChatRoom() {
 
                     <CardContent className="flex-1 p-0 flex flex-col overflow-hidden">
                         <ScrollArea className="flex-1 p-2 md:p-4 overflow-y-auto" ref={scrollAreaRef}>
-                            <div className="space-y-3 md:space-y-4 pb-4">
+                            <div className="space-y-2 md:space-y-4 pb-4">
                                 {messages.length === 0 && (
                                     <div className="text-center py-8">
                                         <p className="text-gray-500 text-sm md:text-base">No messages yet. Start the conversation!</p>
@@ -498,7 +584,7 @@ export default function ChatRoom() {
                         </ScrollArea>
 
                         {/* Sticky Message Input */}
-                        <div className="sticky bottom-0 border-t bg-white/95 backdrop-blur-sm p-2 md:p-4 flex-shrink-0">
+                        <div className="sticky bottom-0 border-t bg-white/95 backdrop-blur-sm p-2 md:p-4 flex-shrink-0 safe-area-inset-bottom">
                             <form onSubmit={handleSubmit} className="flex space-x-2">
                                 <Input
                                     value={input}
