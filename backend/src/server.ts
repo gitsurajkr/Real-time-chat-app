@@ -39,6 +39,17 @@ const subscription: {
     [id: string]: {
         ws: WebSocket,
         rooms: string[];
+        username?: string;
+    }
+} = {}
+
+// Track user presence with heartbeat timestamps
+const userPresence: {
+    [roomId: string]: {
+        [username: string]: {
+            lastSeen: number;
+            isOnline: boolean;
+        }
     }
 } = {}
 
@@ -46,7 +57,8 @@ wss.on("connection", function connection(ws) {
     const id = randomUUID();
     subscription[id] = {
         ws: ws,
-        rooms: []
+        rooms: [],
+        username: undefined
     }
     console.log(`[CONNECTED] user ${id}`);
 
@@ -107,12 +119,108 @@ wss.on("connection", function connection(ws) {
                 })
             )
         }
+
+        // Handle user join events
+        if (type === "USER_JOIN") {
+            const roomId = parsedMessage.roomId;
+            const username = parsedMessage.username;
+            
+            if (roomId && username) {
+                subscription[id].username = username;
+                
+                // Initialize room presence if it doesn't exist
+                if (!userPresence[roomId]) {
+                    userPresence[roomId] = {};
+                }
+                
+                // Mark user as online
+                userPresence[roomId][username] = {
+                    lastSeen: Date.now(),
+                    isOnline: true
+                };
+                
+                // Broadcast to other users in the room
+                broadcastToRoom(roomId, {
+                    type: "USER_JOINED",
+                    roomId,
+                    username
+                });
+                
+                console.log(`User ${username} joined room ${roomId}`);
+            }
+        }
+
+        if (type === "USER_LEAVE") {
+            const roomId = parsedMessage.roomId;
+            const username = parsedMessage.username;
+            
+            if (roomId && username && userPresence[roomId] && userPresence[roomId][username]) {
+                userPresence[roomId][username].isOnline = false;
+                userPresence[roomId][username].lastSeen = Date.now();
+                
+                broadcastToRoom(roomId, {
+                    type: "USER_LEFT",
+                    roomId,
+                    username
+                });
+                
+                console.log(`User ${username} left room ${roomId}`);
+            }
+        }
+
+        // Handle heartbeat to keep user online
+        if (type === "HEARTBEAT") {
+            const roomId = parsedMessage.roomId;
+            const username = parsedMessage.username;
+            
+            if (roomId && username) {
+                if (!userPresence[roomId]) {
+                    userPresence[roomId] = {};
+                }
+                
+                const wasOffline = !userPresence[roomId][username]?.isOnline;
+                
+                // Update user's last seen timestamp and mark as online
+                userPresence[roomId][username] = {
+                    lastSeen: Date.now(),
+                    isOnline: true
+                };
+                
+                // If user was offline and now sending heartbeat, notify others they're back online
+                if (wasOffline) {
+                    broadcastToRoom(roomId, {
+                        type: "USER_ONLINE",
+                        roomId,
+                        username
+                    });
+                    console.log(`User ${username} came back online in room ${roomId}`);
+                }
+            }
+        }
     })
 
     ws.on("close", async () => {
     console.log(`[DISCONNECTED] user ${id}`);
 
     const userRooms = subscription[id].rooms;
+    const username = subscription[id].username;
+    
+    // Mark user as offline in all rooms they were in
+    if (username) {
+        for (const roomId of userRooms) {
+            if (userPresence[roomId] && userPresence[roomId][username]) {
+                userPresence[roomId][username].isOnline = false;
+                userPresence[roomId][username].lastSeen = Date.now();
+                
+                broadcastToRoom(roomId, {
+                    type: "USER_LEFT",
+                    roomId,
+                    username
+                });
+            }
+        }
+    }
+    
     delete subscription[id];
 
     for (const room of userRooms) {
@@ -125,6 +233,40 @@ wss.on("connection", function connection(ws) {
 });
 
 })
+
+function broadcastToRoom(roomId: string, message: any) {
+    Object.entries(subscription).forEach(([uid, { ws, rooms }]) => {
+        if (rooms.includes(roomId) && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(message));
+        }
+    });
+}
+
+// Check for inactive users every 30 seconds and mark them offline
+setInterval(() => {
+    const now = Date.now();
+    const OFFLINE_THRESHOLD = 30000; // 30 seconds
+    
+    Object.keys(userPresence).forEach(roomId => {
+        Object.keys(userPresence[roomId]).forEach(username => {
+            const user = userPresence[roomId][username];
+            
+            if (user.isOnline && (now - user.lastSeen) > OFFLINE_THRESHOLD) {
+                user.isOnline = false;
+                user.lastSeen = now;
+                
+                // Broadcast that user went offline
+                broadcastToRoom(roomId, {
+                    type: "USER_OFFLINE",
+                    roomId,
+                    username
+                });
+                
+                console.log(`User ${username} marked offline in room ${roomId} due to inactivity`);
+            }
+        });
+    });
+}, 30000);
 
 
 function atLeaseOneUserConnected(roomid: string) {
