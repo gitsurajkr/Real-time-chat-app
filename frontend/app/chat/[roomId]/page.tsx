@@ -93,13 +93,13 @@ export default function ChatRoom() {
 
     useEffect(() => {
         if (isConnected && roomId) {
-            console.log(`Subscribing to room: ${roomId}`)
+            // console.log(`Subscribing to room: ${roomId}`)
             subscribeToRoom(roomId)
         }
 
         return () => {
             if (roomId) {
-                console.log(`Unsubscribing from room: ${roomId}`)
+                // console.log(`Unsubscribing from room: ${roomId}`)
                 unsubscribeToRoom(roomId)
             }
         }
@@ -419,7 +419,7 @@ export default function ChatRoom() {
                                         }
                                         {error && <span className="text-red-500 ml-2">• {error}</span>}
                                         {!isConnected && !error && (
-                                            <span className="text-orange-500 ml-2">• Make sure backend is running on port 8080</span>
+                                            <span className="text-orange-500 ml-2">•Backend is Down</span>
                                         )}
                                     </p>
                                 </div>
