@@ -46,9 +46,19 @@ export default function ChatRoom() {
     const [showUsersList, setShowUsersList] = useState(false)
 
     const scrollAreaRef = useRef<HTMLDivElement>(null)
+    const messagesEndRef = useRef<HTMLDivElement>(null)
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+
+    useEffect(() => {
+        scrollToBottom()
+    }, [messages])
 
     // WebSocket connection
     const { isConnected, error, subscribeToRoom, unsubscribeToRoom, sendChatMessage } = useWebsocket({
+        // check here 
         url: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080',
         onMessage: (data: RecieveMessage) => {
             if (data.type === 'RECEIVER_MESSAGE' && data.roomId === roomId) {
@@ -197,10 +207,10 @@ export default function ChatRoom() {
     }
 
     return (
-        <div className="flex h-screen bg-gray-50">
+        <div className="flex h-screen max-h-screen bg-gray-50 overflow-hidden">
             {/* Sidebar */}
             <div className="hidden lg:flex lg:w-80 bg-white border-r border-gray-200 flex-col">
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-gray-200 flex-shrink-0">
                     <div className="flex items-center justify-between mb-4">
                         <Button variant="ghost" size="sm" onClick={() => router.push("/")} className="p-2">
                             <ArrowLeft className="h-4 w-4" />
@@ -390,9 +400,10 @@ export default function ChatRoom() {
             )}
 
             {/* Chat Area */}
-            <div className="flex-1 flex flex-col min-w-0">
-                <Card className="flex-1 m-2 md:m-4 shadow-sm">
-                    <CardHeader className="border-b bg-white/50 backdrop-blur-sm p-3 md:p-6">
+            <div className="flex-1 flex flex-col min-w-0 h-screen max-h-screen">
+                <Card className="flex-1 m-2 md:m-4 shadow-sm flex flex-col h-full max-h-full overflow-hidden gap-0">
+                    {/* Sticky Header */}
+                    <CardHeader className="sticky top-0 z-10 border-b bg-white/95 backdrop-blur-sm p-3 md:p-4 flex-shrink-0">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                                 <Button
@@ -403,23 +414,23 @@ export default function ChatRoom() {
                                 >
                                     <ArrowLeft className="h-4 w-4" />
                                 </Button>
-                                <div>
+                                <div className="">
                                     <div className="flex items-center space-x-2">
-                                        <h1 className="text-lg md:text-xl font-semibold text-gray-900">Room {roomId}</h1>
+                                        <h1 className="text-base md:text-lg font-semibold text-gray-900">Room {roomId}</h1>
                                         {isConnected ? (
-                                            <Wifi className="h-4 w-4 text-green-500" />
+                                            <Wifi className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
                                         ) : (
-                                            <WifiOff className="h-4 w-4 text-red-500" />
+                                            <WifiOff className="h-3 w-3 md:h-4 md:w-4 text-red-500" />
                                         )}
                                     </div>
-                                    <p className="text-xs md:text-sm text-gray-500">
+                                    <p className="text-xs text-gray-500">
                                         {isConnected
                                             ? `${users.filter(u => u.isOnline).length} members online`
                                             : 'Connecting to server...'
                                         }
                                         {error && <span className="text-red-500 ml-2">• {error}</span>}
                                         {!isConnected && !error && (
-                                            <span className="text-orange-500 ml-2">•Backend is Down</span>
+                                            <span className="text-orange-500 ml-2">• Backend is Down</span>
                                         )}
                                     </p>
                                 </div>
@@ -429,25 +440,25 @@ export default function ChatRoom() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setShowUsersList(true)}
-                                    className="bg-transparent"
+                                    className="bg-transparent p-1 h-8 w-8"
                                 >
-                                    <Users className="h-4 w-4" />
+                                    <Users className="h-3 w-3" />
                                 </Button>
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={copyRoomId}
-                                    className="bg-transparent"
+                                    className="bg-transparent p-1 h-8 w-8"
                                 >
-                                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                                    {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                                 </Button>
                             </div>
                         </div>
                     </CardHeader>
 
-                    <CardContent className="flex-1 p-0 flex flex-col">
-                        <ScrollArea className="flex-1 p-2 md:p-4" ref={scrollAreaRef}>
-                            <div className="space-y-3 md:space-y-4">
+                    <CardContent className="flex-1 p-0 flex flex-col overflow-hidden">
+                        <ScrollArea className="flex-1 p-2 md:p-4 overflow-y-auto" ref={scrollAreaRef}>
+                            <div className="space-y-3 md:space-y-4 pb-4">
                                 {messages.length === 0 && (
                                     <div className="text-center py-8">
                                         <p className="text-gray-500 text-sm md:text-base">No messages yet. Start the conversation!</p>
@@ -481,21 +492,24 @@ export default function ChatRoom() {
                                         </div>
                                     </div>
                                 ))}
+                                {/* Invisible element to scroll to */}
+                                <div ref={messagesEndRef} />
                             </div>
                         </ScrollArea>
 
-                        <div className="border-t bg-white/50 backdrop-blur-sm p-2 md:p-4">
+                        {/* Sticky Message Input */}
+                        <div className="sticky bottom-0 border-t bg-white/95 backdrop-blur-sm p-2 md:p-4 flex-shrink-0">
                             <form onSubmit={handleSubmit} className="flex space-x-2">
                                 <Input
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     placeholder="Type your message..."
-                                    className="flex-1 rounded-full border-gray-200 focus:border-blue-500 focus:ring-blue-500 text-sm md:text-base"
+                                    className="flex-1 rounded-full border-gray-200 focus:border-blue-500 focus:ring-blue-500 text-sm h-9 md:h-10"
                                 />
                                 <Button
                                     type="submit"
                                     disabled={!input.trim() || !isConnected}
-                                    className="rounded-full h-8 w-8 md:h-10 md:w-10 p-0 bg-blue-500 hover:bg-blue-600 disabled:opacity-50"
+                                    className="rounded-full h-9 w-9 md:h-10 md:w-10 p-0 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 flex-shrink-0"
                                 >
                                     <Send className="h-3 w-3 md:h-4 md:w-4" />
                                 </Button>
