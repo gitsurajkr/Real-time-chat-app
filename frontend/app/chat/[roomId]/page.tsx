@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -13,7 +12,6 @@ import { Badge } from "@/components/ui/badge"
 import { Send, ArrowLeft, Users, Copy, Check, Wifi, WifiOff } from "lucide-react"
 import { useWebsocket, type RecieveMessage } from "@/lib/useWebSocket"
 import { v4 as uuidv4 } from 'uuid'
-
 
 interface Message {
     id: string
@@ -51,7 +49,7 @@ export default function ChatRoom() {
 
     // WebSocket connection
     const { isConnected, error, subscribeToRoom, unsubscribeToRoom, sendChatMessage } = useWebsocket({
-        url: 'ws://localhost:8080',
+        url: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080',
         onMessage: (data: RecieveMessage) => {
             if (data.type === 'RECEIVER_MESSAGE' && data.roomId === roomId) {
                 const newMessage: Message = {
