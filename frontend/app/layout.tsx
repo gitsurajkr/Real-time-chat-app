@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EchoLine",
-  description: "EchoLine is a fast, modern chat app for real-time conversations across the globe.",
+  title: "SwiftChat",
+  description: "SwiftChat is a fast, modern chat app for real-time conversations across the globe.",
 };
 
 export default function RootLayout({
