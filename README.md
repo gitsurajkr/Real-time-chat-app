@@ -1,4 +1,4 @@
-# EchoLine - Real-Time Chat App
+# SwiftChat - Real-Time Chat App
 
 A scalable real-time chat application built with **Node.js**, **Express**, **WebSocket**, **Redis Pub/Sub**, and **Next.js**.
 
