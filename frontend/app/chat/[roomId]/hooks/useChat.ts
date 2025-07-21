@@ -32,7 +32,9 @@ export const useChat = ({ roomId, username }: UseChatProps) => {
     // WebSocket connection
     // 
     const { isConnected, error, subscribeToRoom, unsubscribeToRoom, sendChatMessage, joinRoom, leaveRoom, sendHeartbeat, sendTyping, sendStopTyping } = useWebsocket({
+        
         url: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080',
+       
         onMessage: (data: RecieveMessage) => {
             if (data.type === 'RECEIVER_MESSAGE' && data.roomId === roomId) {
                 const newMessage: Message = {
