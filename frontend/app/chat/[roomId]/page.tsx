@@ -35,7 +35,10 @@ export default function ChatRoom() {
         isConnected,
         error,
         handleSubmit,
-        copyRoomId
+        copyRoomId,
+        typingUsers,
+        handleTyping,
+        handleStopTyping
     } = useChat({ roomId, username })
 
     const handleBackClick = () => {
@@ -90,6 +93,8 @@ export default function ChatRoom() {
                         <MessageList
                             messages={messages}
                             messagesEndRef={messagesEndRef}
+                            typingUsers={typingUsers}
+                            currentUsername={username}
                         />
 
                         {/* Message Input */}
@@ -98,6 +103,8 @@ export default function ChatRoom() {
                             setInput={setInput}
                             onSubmit={handleSubmit}
                             isConnected={isConnected}
+                            onTyping={handleTyping}
+                            onStopTyping={handleStopTyping}
                         />
                     </CardContent>
                 </Card>

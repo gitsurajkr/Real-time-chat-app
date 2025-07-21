@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useWebsocket, type RecieveMessage } from "@/lib/useWebSocket"
 import { v4 as uuidv4 } from 'uuid'
 import type { Message, User } from "../types"
@@ -16,6 +16,7 @@ export const useChat = ({ roomId, username }: UseChatProps) => {
     const [users, setUsers] = useState<User[]>([{ username, joinedAt: new Date(), isOnline: true }])
     const [copied, setCopied] = useState(false)
     const [showUsersList, setShowUsersList] = useState(false)
+    const [typingUsers, setTypingUsers] = useState<string[]>([])
 
     const scrollAreaRef = useRef<HTMLDivElement>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -29,7 +30,8 @@ export const useChat = ({ roomId, username }: UseChatProps) => {
     }, [messages])
 
     // WebSocket connection
-    const { isConnected, error, subscribeToRoom, unsubscribeToRoom, sendChatMessage, joinRoom, leaveRoom, sendHeartbeat } = useWebsocket({
+    // 
+    const { isConnected, error, subscribeToRoom, unsubscribeToRoom, sendChatMessage, joinRoom, leaveRoom, sendHeartbeat, sendTyping, sendStopTyping } = useWebsocket({
         url: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080',
         onMessage: (data: RecieveMessage) => {
             if (data.type === 'RECEIVER_MESSAGE' && data.roomId === roomId) {
@@ -69,6 +71,20 @@ export const useChat = ({ roomId, username }: UseChatProps) => {
                     }
                     return prev
                 })
+            }
+            
+            // Handle typing events
+            if (data.type === 'USER_TYPING' && data.username && data.username !== username && data.roomId === roomId) {
+                setTypingUsers(prev => {
+                    if (!prev.includes(data.username!)) {
+                        return [...prev, data.username!]
+                    }
+                    return prev
+                })
+            }
+            
+            if (data.type === 'USER_STOP_TYPING' && data.username && data.roomId === roomId) {
+                setTypingUsers(prev => prev.filter(user => user !== data.username))
             }
             
             // Handle user join/leave events
@@ -218,6 +234,19 @@ export const useChat = ({ roomId, username }: UseChatProps) => {
         setTimeout(() => setCopied(false), 2000)
     }
 
+    // Typing handlers with WebSocket integration
+    const handleTyping = useCallback(() => {
+        if (isConnected && roomId && username) {
+            sendTyping(roomId, username)
+        }
+    }, [isConnected, roomId, username, sendTyping])
+
+    const handleStopTyping = useCallback(() => {
+        if (isConnected && roomId && username) {
+            sendStopTyping(roomId, username)
+        }
+    }, [isConnected, roomId, username, sendStopTyping])
+
     return {
         messages,
         input,
@@ -231,6 +260,9 @@ export const useChat = ({ roomId, username }: UseChatProps) => {
         isConnected,
         error,
         handleSubmit,
-        copyRoomId
+        copyRoomId,
+        typingUsers,
+        handleTyping,
+        handleStopTyping
     }
 }

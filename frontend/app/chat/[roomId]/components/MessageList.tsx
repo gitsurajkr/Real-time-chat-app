@@ -2,11 +2,14 @@ import React from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { formatTime, getInitials, getAvatarColor } from "../utils"
+import { TypingIndicator } from "./TypingIndicator"
 import type { MessageListProps } from "../types"
 
 export const MessageList: React.FC<MessageListProps> = ({
     messages,
-    messagesEndRef
+    messagesEndRef,
+    typingUsers = [],
+    currentUsername
 }) => {
     return (
         <ScrollArea className="flex-1 p-2 md:p-4 overflow-y-auto">
@@ -44,6 +47,13 @@ export const MessageList: React.FC<MessageListProps> = ({
                         </div>
                     </div>
                 ))}
+                
+                {/* Typing Indicator */}
+                <TypingIndicator 
+                    typingUsers={typingUsers} 
+                    currentUsername={currentUsername}
+                />
+                
                 {/* Invisible element to scroll to */}
                 <div ref={messagesEndRef} />
             </div>

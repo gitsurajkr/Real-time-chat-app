@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Send } from "lucide-react"
@@ -8,14 +8,63 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     input,
     setInput,
     onSubmit,
-    isConnected
+    isConnected,
+    onTyping,
+    onStopTyping
 }) => {
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const isTypingRef = useRef(false)
+
+    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+        setInput(value)
+
+        // Handle typing indicators
+        if (value.trim() && onTyping && onStopTyping) {
+            // User started typing
+            if (!isTypingRef.current) {
+                isTypingRef.current = true
+                onTyping()
+            }
+
+            // Clear existing timeout
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current)
+            }
+
+            // Set new timeout to stop typing after 2 seconds of inactivity
+            typingTimeoutRef.current = setTimeout(() => {
+                isTypingRef.current = false
+                onStopTyping()
+            }, 2000)
+        } else if (!value.trim() && isTypingRef.current && onStopTyping) {
+            // User cleared input, stop typing immediately
+            isTypingRef.current = false
+            onStopTyping()
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current)
+            }
+        }
+    }, [setInput, onTyping, onStopTyping])
+
+    const handleSubmit = useCallback((e: React.FormEvent) => {
+        // Stop typing when message is sent
+        if (isTypingRef.current && onStopTyping) {
+            isTypingRef.current = false
+            onStopTyping()
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current)
+            }
+        }
+        onSubmit(e)
+    }, [onSubmit, onStopTyping])
+
     return (
         <div className="sticky bottom-0 border-t bg-white/95 backdrop-blur-sm p-2 md:p-4 flex-shrink-0 safe-area-inset-bottom">
-            <form onSubmit={onSubmit} className="flex space-x-2">
+            <form onSubmit={handleSubmit} className="flex space-x-2">
                 <Input
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                    onChange={handleInputChange}
                     placeholder="Type your message..."
                     className="flex-1 rounded-full border-gray-200 focus:border-blue-500 focus:ring-blue-500 text-sm h-9 md:h-10"
                 />

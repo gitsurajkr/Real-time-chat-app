@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
 export interface wsMessage {
-    type: 'SUBSCRIBE' | 'UNSUBSCRIBE' | 'sendMessage' | 'USER_JOIN' | 'USER_LEAVE' | 'HEARTBEAT'
+    type: 'SUBSCRIBE' | 'UNSUBSCRIBE' | 'sendMessage' | 'USER_JOIN' | 'USER_LEAVE' | 'HEARTBEAT' | 'USER_TYPING' | 'USER_STOP_TYPING'
     room?: string,
     roomId?: string
     username?: string
@@ -17,7 +17,7 @@ export interface wsMessage {
 }
 
 export interface RecieveMessage {
-    type: "RECEIVER_MESSAGE" | "USER_JOINED" | "USER_LEFT" | "USER_ONLINE" | "USER_OFFLINE",
+    type: "RECEIVER_MESSAGE" | "USER_JOINED" | "USER_LEFT" | "USER_ONLINE" | "USER_OFFLINE" | "USER_TYPING" | "USER_STOP_TYPING",
     roomId: string,
     username?: string,
     message?: {
@@ -227,6 +227,28 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
         return false
     }, [])
 
+    const sendTyping = useCallback((roomId: string, username: string) => {
+        if (wsref.current?.readyState === WebSocket.OPEN) {
+            console.log("User started typing: ", { type: 'USER_TYPING', roomId, username })
+            wsref.current.send(JSON.stringify({ type: 'USER_TYPING', roomId, username }))
+            return true
+        } else {
+            console.warn('WebSocket is not connected. Cannot send typing event:', roomId)
+            return false
+        }
+    }, [])
+
+    const sendStopTyping = useCallback((roomId: string, username: string) => {
+        if (wsref.current?.readyState === WebSocket.OPEN) {
+            console.log("User stopped typing: ", { type: 'USER_STOP_TYPING', roomId, username })
+            wsref.current.send(JSON.stringify({ type: 'USER_STOP_TYPING', roomId, username }))
+            return true
+        } else {
+            console.warn('WebSocket is not connected. Cannot send stop typing event:', roomId)
+            return false
+        }
+    }, [])
+
 
     useEffect(() => {
         // Disconnect any existing connection before connecting to new URL
@@ -252,6 +274,8 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
         joinRoom,
         leaveRoom,
         sendHeartbeat,
+        sendTyping,
+        sendStopTyping,
         connect,
         disconnect
     }

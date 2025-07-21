@@ -23,11 +23,15 @@ export interface MessageInputProps {
     setInput: (value: string) => void
     onSubmit: (e: React.FormEvent) => void
     isConnected: boolean
+    onTyping?: () => void
+    onStopTyping?: () => void
 }
 
 export interface MessageListProps {
     messages: Message[]
     messagesEndRef: React.RefObject<HTMLDivElement | null>
+    typingUsers?: string[]
+    currentUsername: string
 }
 
 export interface UsersSidebarProps {
