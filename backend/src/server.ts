@@ -197,6 +197,39 @@ wss.on("connection", function connection(ws) {
                 }
             }
         }
+
+        // Handle typing events
+        if (type === "USER_TYPING") {
+            const roomId = parsedMessage.roomId;
+            const username = parsedMessage.username;
+            
+            if (roomId && username) {
+                // Broadcast typing event to other users in the room (excluding sender)
+                broadcastToRoom(roomId, {
+                    type: "USER_TYPING",
+                    roomId,
+                    username
+                }, id); // Pass sender's ID to exclude them
+                
+                console.log(`User ${username} is typing in room ${roomId}`);
+            }
+        }
+
+        if (type === "USER_STOP_TYPING") {
+            const roomId = parsedMessage.roomId;
+            const username = parsedMessage.username;
+            
+            if (roomId && username) {
+                // Broadcast stop typing event to other users in the room (excluding sender)
+                broadcastToRoom(roomId, {
+                    type: "USER_STOP_TYPING",
+                    roomId,
+                    username
+                }, id); 
+                
+                console.log(`User ${username} stopped typing in room ${roomId}`);
+            }
+        }
     })
 
     ws.on("close", async () => {
@@ -234,9 +267,9 @@ wss.on("connection", function connection(ws) {
 
 })
 
-function broadcastToRoom(roomId: string, message: any) {
+function broadcastToRoom(roomId: string, message: any, excludeId?: string) {
     Object.entries(subscription).forEach(([uid, { ws, rooms }]) => {
-        if (rooms.includes(roomId) && ws.readyState === WebSocket.OPEN) {
+        if (rooms.includes(roomId) && ws.readyState === WebSocket.OPEN && uid !== excludeId) {
             ws.send(JSON.stringify(message));
         }
     });
