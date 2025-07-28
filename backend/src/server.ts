@@ -309,3 +309,5 @@ function atLeaseOneUserConnected(roomid: string) {
 function noOneIsConnected(roomId: string) {
    return !Object.values(subscription).some(sub => sub.rooms.includes(roomId))
 }
+
+
