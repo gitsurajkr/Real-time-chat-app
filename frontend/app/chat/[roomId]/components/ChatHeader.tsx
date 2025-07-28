@@ -24,6 +24,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                         onClick={onBackClick}
                         className="p-1 md:p-2 lg:hidden"
                     >
+
+                        
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div className="">
