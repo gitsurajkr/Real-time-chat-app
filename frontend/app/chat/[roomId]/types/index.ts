@@ -5,6 +5,7 @@ export interface Message {
     timestamp: Date
     isOwn: boolean,
     imageUrl?: string
+    isUploading?: boolean;
 }
 
 export interface User {
