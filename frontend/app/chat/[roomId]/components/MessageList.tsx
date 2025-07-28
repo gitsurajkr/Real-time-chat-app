@@ -14,6 +14,7 @@ const ImageSkeleton = () => (
   </div>
 );
 
+
 export const MessageList: React.FC<MessageListProps> = (props) => {
     const { messages, messagesEndRef, typingUsers = [], currentUsername } = props;
     const [modalImage, setModalImage] = useState<string | null>(null);
@@ -24,6 +25,13 @@ export const MessageList: React.FC<MessageListProps> = (props) => {
     React.useEffect(() => {
         setLocalMessages(messages);
     }, [messages]);
+
+    // Scroll to bottom when messages change
+    React.useEffect(() => {
+        if (messagesEndRef && messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [localMessages, messagesEndRef]);
 
 
     // For download

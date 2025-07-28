@@ -26,7 +26,7 @@ export interface RecieveMessage {
         username: string,
         timestamp: string,
         userId: string,
-        imageUrl?: string // Only for RECEIVER_IMAGE
+        imageUrl?: string
     }
 }
 
@@ -56,7 +56,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
         onDisconnectRef.current = onDisconnect
     }, [onMessage, onConnect, onDisconnect])
 
-    
+
 
     const connect = useCallback(() => {
         try {
@@ -71,9 +71,9 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
             isConnectingRef.current = true
 
             // debug
-            if (url.includes('localhost') || url.includes('127.0.0.1')) {
-                // console.log("Connecting to localhost. Check if backend server is running on which port ")
-            }
+            // if (url.includes('localhost') || url.includes('127.0.0.1')) {
+            //     // console.log("Connecting to localhost. Check if backend server is running on which port ")
+            // }
 
             wsref.current = new WebSocket(url)
 
@@ -111,7 +111,6 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
                                 content: "[image]",
                                 username: lastUsername || "unknown",
                                 timestamp: new Date().toISOString(),
-                                userId: "unknown",
                                 imageUrl: blobUrl
                             }
                         } as RecieveMessage);
@@ -143,8 +142,8 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
             }
 
             wsref.current.onerror = (err) => {
-                console.error('WebSocket error occurred. This usually means connection failed or was rejected.', err)
-                setError('Connection failed. Please check if the server is running.')
+                console.error('WebSocket error occurred.', err)
+                setError('Connection failed.')
                 isConnectingRef.current = false
             }
 
@@ -155,7 +154,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
         }
     }, [url])
 
-    
+
 
 
     const disconnect = useCallback(() => {
@@ -178,7 +177,6 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
 
     const sendMessage = useCallback((message: wsMessage) => {
         if (wsref.current?.readyState === WebSocket.OPEN) {
-            // console.log("Sending message: ", message)
             wsref.current.send(JSON.stringify(message))
             return true
         } else {
@@ -189,11 +187,10 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
 
     const subscribeToRoom = useCallback((room: string) => {
         if (wsref.current?.readyState === WebSocket.OPEN) {
-            // console.log("Sending subscription: ", { type: 'SUBSCRIBE', room })
             wsref.current.send(JSON.stringify({ type: 'SUBSCRIBE', room }))
             return true
         } else {
-            console.warn('WebSocket is not connected. Cannot subscribe to room:', room)
+            console.warn('WebSocket is not connected to: ', room)
             return false
         }
     }, [])
@@ -204,7 +201,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
             wsref.current.send(JSON.stringify({ type: 'UNSUBSCRIBE', room }))
             return true
         } else {
-            console.warn('WebSocket is not connected. Cannot unsubscribe from room:', room)
+            console.warn('WebSocket is not connected to:', room)
             return false
         }
     }, [])
@@ -262,7 +259,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
             wsref.current.send(JSON.stringify({ type: 'USER_TYPING', roomId, username }))
             return true
         } else {
-            console.warn('WebSocket is not connected. Cannot send typing event:', roomId)
+            console.warn('WebSocket is not connected to: ', roomId)
             return false
         }
     }, [])
@@ -273,20 +270,20 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
             wsref.current.send(JSON.stringify({ type: 'USER_STOP_TYPING', roomId, username }))
             return true
         } else {
-            console.warn('WebSocket is not connected. Cannot send stop typing event:', roomId)
+            console.warn('WebSocket is not connected to: ', roomId)
             return false
         }
     }, [])
 
     const sendImageBlob = useCallback((file: File) => {
-  if (wsref.current?.readyState === WebSocket.OPEN) {
-    wsref.current.send(file)
-    return true
-  } else {
-    console.warn('WebSocket is not connected. Cannot send image')
-    return false
-  }
-}, [])
+        if (wsref.current?.readyState === WebSocket.OPEN) {
+            wsref.current.send(file)
+            return true
+        } else {
+            console.warn('WebSocket is not connected')
+            return false
+        }
+    }, [])
 
 
     useEffect(() => {
@@ -300,7 +297,6 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
         return () => {
             disconnect()
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [url])
 
 

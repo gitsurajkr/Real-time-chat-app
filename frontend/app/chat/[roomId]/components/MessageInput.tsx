@@ -23,12 +23,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
-        if (file.size > 2 * 1024 * 1024) {
-            alert("Image must be under 2MB")
+        if (file.size > 10 * 1024 * 1024) {
+            alert("Image must be under 10MB")
             return
         }
         onSendImage?.(file)
-        e.target.value = "" // reset input
+        e.target.value = ""
     }
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,7 +85,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                     className="text-blue-500 hover:text-blue-600 cursor-pointer"
                     title="Send image"
                 >
-                    <Image src="/Imageicon.png" alt="image" width={40} height={40} className="rounded-md"/>
+                    <Image src="/Imageicon.png" alt="image" width={35} height={35} className="rounded-md"/>
                 </button>
 
                 <Input
