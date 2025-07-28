@@ -8,11 +8,13 @@ import Image from "next/image"
 
 // Simple skeleton loader component
 const ImageSkeleton = () => (
-  <div className="w-40 h-32 bg-gray-200 animate-pulse rounded-lg flex items-center justify-center">
-    <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a4 4 0 004 4h10a4 4 0 004-4V7a4 4 0 00-4-4H7a4 4 0 00-4 4z" />
-    </svg>
-  </div>
+  <div role="status" className="flex items-center justify-center h-56  bg-gray-300 rounded-lg animate-pulse dark:bg-gray-700">
+    <svg className="w-100 h-50 text-gray-200 dark:text-gray-600" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 20">
+    <path d="M5 5V.13a2.96 2.96 0 0 0-1.293.749L.879 3.707A2.98 2.98 0 0 0 .13 5H5Z"/>
+    <path d="M14.066 0H7v5a2 2 0 0 1-2 2H0v11a1.97 1.97 0 0 0 1.934 2h12.132A1.97 1.97 0 0 0 16 18V2a1.97 1.97 0 0 0-1.934-2ZM9 13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2Zm4 .382a1 1 0 0 1-1.447.894L10 13v-2l1.553-1.276a1 1 0 0 1 1.447.894v2.764Z"/>
+  </svg>
+    <span className="sr-only">Loading...</span>
+</div>
 );
 
 export interface MessageListWithReplyProps extends MessageListProps {
@@ -145,8 +147,8 @@ export const MessageList: React.FC<MessageListWithReplyProps> = (props) => {
               >
                 {/* Reply preview above the message bubble if this message is a reply */}
                 {message.replyTo && (
-                  <div className={`rounded-md px-2 py-1 mb-1 text-xs ${message.isOwn ? 'bg-blue-100 text-blue-900' : 'bg-gray-200 text-gray-700'}`}
-                       style={{ borderLeft: `3px solid ${message.isOwn ? '#3b82f6' : '#a3a3a3'}` }}>
+                  <div className={`rounded-md px-2 py-1 mb-1 text-xs ${message.isOwn ? 'bg-gray-100 text-blue-900' : 'bg-gray-200 text-gray-700'}`}
+                       style={{ borderLeft: `3px solid #a3a3a3` }}>
                     <span className="font-semibold">{message.replyTo.username}:</span> {message.replyTo.content || 'Image'}
                   </div>
                 )}
@@ -154,9 +156,17 @@ export const MessageList: React.FC<MessageListWithReplyProps> = (props) => {
                   <span className="text-xs font-medium text-gray-600">{message.username}</span>
                   <span className="text-xs text-gray-400">{formatTime(message.timestamp)}</span>
                 </div>
-                <div className={`rounded-2xl px-3 py-2 md:px-4 ${message.isOwn ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-900"}`}>
+                <div
+                  className={
+                    message.imageUrl || message.isUploading
+                      ? "p-0 bg-transparent shadow-none"
+                      : `rounded-2xl px-3 py-2 md:px-4 ${message.isOwn ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-900"}`
+                  }
+                >
                   {message.isUploading ? (
-                    <ImageSkeleton />
+                    <div className="relative group min-h-[128px] flex items-center justify-center bg-transparent border-none shadow-none">
+                      <ImageSkeleton />
+                    </div>
                   ) : message.imageUrl ? (
                     <div className="relative group">
                       <Image

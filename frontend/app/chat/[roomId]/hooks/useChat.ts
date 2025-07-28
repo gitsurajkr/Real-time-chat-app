@@ -32,7 +32,7 @@ export const useChat = ({ roomId, username }: UseChatProps) => {
     }, [messages]);
 
     const { isConnected, error, subscribeToRoom, unsubscribeToRoom, sendChatMessage, joinRoom, leaveRoom, sendHeartbeat, sendTyping, sendStopTyping, sendImageBlob } = useWebsocket({
-        url: process.env.NEXT_PUBLIC_WS_URL ||'ws://localhost:8080',
+        url: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080',
         onMessage: (data: RecieveMessage) => {
             if (data.type === 'RECEIVER_MESSAGE' && data.roomId === roomId) {
                 const newMessage: Message = {
@@ -77,10 +77,17 @@ export const useChat = ({ roomId, username }: UseChatProps) => {
                     timestamp: new Date(data.message.timestamp),
                     isOwn: data.message.username === username
                 };
-                setMessages((prev) => [...prev, imageMsg]);
+
+                setMessages((prev) => {
+                    // Remove any uploading message for this user
+                    const filtered = prev.filter(
+                        (msg) => !(msg.isUploading && msg.username === imageMsg.username && msg.isOwn)
+                    );
+                    return [...filtered, imageMsg];
+                });
                 return;
             }
-            
+
             // Handle typing events
             if (data.type === 'USER_TYPING' && data.username && data.username !== username && data.roomId === roomId) {
                 setTypingUsers(prev => {
@@ -255,8 +262,20 @@ export const useChat = ({ roomId, username }: UseChatProps) => {
     }
 
     const handleSendImage = useCallback((file: File) => {
-                sendImageBlob(file);
-            }, [sendImageBlob]);
+    // Generate a temporary ID for the uploading message
+    const tempId = uuidv4();
+    const tempMessage: Message = {
+        id: tempId,
+        content: "[image]",
+        username,
+        timestamp: new Date(),
+        isOwn: true,
+        isUploading: true
+    };
+    setMessages((prev) => [...prev, tempMessage]);
+    // Send the image file via WebSocket
+    sendImageBlob(file);
+}, [sendImageBlob, username]);
 
 
     // Typing handlers with WebSocket integration
