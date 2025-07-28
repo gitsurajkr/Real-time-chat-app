@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Send } from "lucide-react"
 import type { MessageInputProps } from "../types"
+import Image from "next/image"
 
 export const MessageInput: React.FC<MessageInputProps> = ({
     input,
@@ -10,10 +11,25 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     onSubmit,
     isConnected,
     onTyping,
-    onStopTyping
+    onStopTyping,
+    onSendImage
 }) => {
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const isTypingRef = useRef(false)
+    const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+    const handleImageClick = () => fileInputRef.current?.click()
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        if (file.size > 2 * 1024 * 1024) {
+            alert("Image must be under 2MB")
+            return
+        }
+        onSendImage?.(file)
+        e.target.value = "" // reset input
+    }
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value
@@ -62,6 +78,24 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     return (
         <div className="sticky bottom-0 border-t bg-white/95 backdrop-blur-sm p-2 md:p-4 flex-shrink-0 safe-area-inset-bottom">
             <form onSubmit={handleSubmit} className="flex space-x-2">
+
+                <button
+                    type="button"
+                    onClick={handleImageClick}
+                    className="text-blue-500 hover:text-blue-600 cursor-pointer"
+                    title="Send image"
+                >
+                    <Image src="/Imageicon.png" alt="image" width={40} height={40} className="rounded-md"/>
+                </button>
+
+                <Input
+                    type="file"
+                    accept="image/*"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleFileChange}
+                />
+
                 <Input
                     value={input}
                     onChange={handleInputChange}

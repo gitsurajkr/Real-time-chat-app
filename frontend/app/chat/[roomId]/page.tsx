@@ -38,7 +38,8 @@ export default function ChatRoom() {
         copyRoomId,
         typingUsers,
         handleTyping,
-        handleStopTyping
+        handleStopTyping,
+        handleSendImage
     } = useChat({ roomId, username })
 
     const handleBackClick = () => {
@@ -105,6 +106,7 @@ export default function ChatRoom() {
                             isConnected={isConnected}
                             onTyping={handleTyping}
                             onStopTyping={handleStopTyping}
+                            onSendImage={handleSendImage}
                         />
                     </CardContent>
                 </Card>

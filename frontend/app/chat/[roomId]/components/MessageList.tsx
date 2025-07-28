@@ -36,24 +36,23 @@ export const MessageList: React.FC<MessageListProps> = ({
                                 <span className="text-xs font-medium text-gray-600">{message.username}</span>
                                 <span className="text-xs text-gray-400">{formatTime(message.timestamp)}</span>
                             </div>
-                            <div
-                                className={`rounded-2xl px-3 py-2 md:px-4 ${message.isOwn
-                                        ? "bg-blue-500 text-white rounded-br-md"
-                                        : "bg-gray-100 text-gray-900 rounded-bl-md"
-                                    }`}
-                            >
-                                <p className="text-sm leading-relaxed">{message.content}</p>
+                            <div className={`rounded-2xl px-3 py-2 md:px-4 ${message.isOwn ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-900"}`}>
+                                {message.imageUrl ? (
+                                    <img src={message.imageUrl} alt="sent image" className="max-w-xs rounded-lg" />
+                                ) : (
+                                    <p className="text-sm leading-relaxed">{message.content}</p>
+                                )}
                             </div>
                         </div>
                     </div>
                 ))}
-                
+
                 {/* Typing Indicator */}
-                <TypingIndicator 
-                    typingUsers={typingUsers} 
+                <TypingIndicator
+                    typingUsers={typingUsers}
                     currentUsername={currentUsername}
                 />
-                
+
                 {/* Invisible element to scroll to */}
                 <div ref={messagesEndRef} />
             </div>

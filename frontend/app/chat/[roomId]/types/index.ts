@@ -3,7 +3,8 @@ export interface Message {
     content: string
     username: string
     timestamp: Date
-    isOwn: boolean
+    isOwn: boolean,
+    imageUrl?: string
 }
 
 export interface User {
@@ -24,7 +25,8 @@ export interface MessageInputProps {
     onSubmit: (e: React.FormEvent) => void
     isConnected: boolean
     onTyping?: () => void
-    onStopTyping?: () => void
+    onStopTyping?: () => void,
+    onSendImage?: (file: File ) => void
 }
 
 export interface MessageListProps {

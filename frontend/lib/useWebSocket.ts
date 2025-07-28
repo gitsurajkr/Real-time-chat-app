@@ -17,7 +17,7 @@ export interface wsMessage {
 }
 
 export interface RecieveMessage {
-    type: "RECEIVER_MESSAGE" | "USER_JOINED" | "USER_LEFT" | "USER_ONLINE" | "USER_OFFLINE" | "USER_TYPING" | "USER_STOP_TYPING",
+    type: "RECEIVER_MESSAGE" | "USER_JOINED" | "USER_LEFT" | "USER_ONLINE" | "USER_OFFLINE" | "USER_TYPING" | "USER_STOP_TYPING" | "RECEIVER_IMAGE",
     roomId: string,
     username?: string,
     message?: {
@@ -25,7 +25,8 @@ export interface RecieveMessage {
         content: string,
         username: string,
         timestamp: string,
-        userId: string
+        userId: string,
+        imageUrl?: string // Only for RECEIVER_IMAGE
     }
 }
 
@@ -36,8 +37,6 @@ export interface useWebsocketProps {
     onDisconnect?: () => void
 }
 
-
-
 export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWebsocketProps) => {
     const [isConnected, setIsConnected] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -45,16 +44,19 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const reConnectAttempt = useRef(0)
     const maxReconnectAttempt = 5;
-    const isConnectingRef = useRef(false) 
+    const isConnectingRef = useRef(false)
     const onMessageRef = useRef(onMessage)
     const onConnectRef = useRef(onConnect)
     const onDisconnectRef = useRef(onDisconnect)
+
 
     useEffect(() => {
         onMessageRef.current = onMessage
         onConnectRef.current = onConnect
         onDisconnectRef.current = onDisconnect
     }, [onMessage, onConnect, onDisconnect])
+
+    
 
     const connect = useCallback(() => {
         try {
@@ -84,15 +86,40 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
                 onConnectRef.current?.()
             }
 
+            // Store last known roomId and username from text messages
+            let lastRoomId: string | undefined = undefined;
+            let lastUsername: string | undefined = undefined;
             wsref.current.onmessage = (event) => {
                 try {
-                    const data = JSON.parse(event.data) as RecieveMessage
-                    // console.log("Received message: ", data)
-                    onMessageRef.current?.(data)
+                    if (typeof event.data === "string") {
+                        const data = JSON.parse(event.data) as RecieveMessage;
+                        // Track last roomId and username for binary context
+                        if (data.roomId) lastRoomId = data.roomId;
+                        if (data.username) lastUsername = data.username;
+                        onMessageRef.current?.(data);
+                    } else {
+                        // If binary image
+                        const blob = new Blob([event.data]);
+                        const blobUrl = URL.createObjectURL(blob);
+                        // Use last known roomId and username for context
+                        onMessageRef.current?.({
+                            type: "RECEIVER_IMAGE",
+                            roomId: lastRoomId || "unknown",
+                            username: lastUsername,
+                            message: {
+                                id: crypto.randomUUID(),
+                                content: "[image]",
+                                username: lastUsername || "unknown",
+                                timestamp: new Date().toISOString(),
+                                userId: "unknown",
+                                imageUrl: blobUrl
+                            }
+                        } as RecieveMessage);
+                    }
                 } catch (err) {
-                    console.error('Error parsing WebSocket message:', err)
+                    console.error("Error parsing WebSocket message:", err);
                 }
-            }
+            };
 
             wsref.current.onclose = (event) => {
                 // console.log('WebSocket disconnected:', event.code, event.reason)
@@ -126,7 +153,9 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
             setError('Failed to create WebSocket connection')
             isConnectingRef.current = false
         }
-    }, [url]) 
+    }, [url])
+
+    
 
 
     const disconnect = useCallback(() => {
@@ -141,7 +170,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
             wsref.current.close(1000, 'Disconnected by user')
             wsref.current = null
         }
-        
+
         isConnectingRef.current = false
         setIsConnected(false)
         setError(null)
@@ -249,20 +278,32 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
         }
     }, [])
 
+    const sendImageBlob = useCallback((file: File) => {
+  if (wsref.current?.readyState === WebSocket.OPEN) {
+    wsref.current.send(file)
+    return true
+  } else {
+    console.warn('WebSocket is not connected. Cannot send image')
+    return false
+  }
+}, [])
+
 
     useEffect(() => {
         // Disconnect any existing connection before connecting to new URL
         if (wsref.current && wsref.current.readyState !== WebSocket.CLOSED) {
             wsref.current.close(1000, 'URL changed')
         }
-        
+
         connect()
 
         return () => {
             disconnect()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [url]) 
+    }, [url])
+
+
 
     return {
         isConnected,
@@ -277,7 +318,8 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
         sendTyping,
         sendStopTyping,
         connect,
-        disconnect
+        disconnect,
+        sendImageBlob
     }
 }
 
