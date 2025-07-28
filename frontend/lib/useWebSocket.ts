@@ -61,7 +61,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
             if (wsref.current?.readyState === WebSocket.OPEN ||
                 wsref.current?.readyState === WebSocket.CONNECTING ||
                 isConnectingRef.current) {
-                console.log("WebSocket already connected or connecting")
+                // console.log("WebSocket already connected or connecting")
                 return;
             }
 
@@ -70,13 +70,13 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
 
             // debug
             if (url.includes('localhost') || url.includes('127.0.0.1')) {
-                console.log("Connecting to localhost. Check if backend server is running on which port ")
+                // console.log("Connecting to localhost. Check if backend server is running on which port ")
             }
 
             wsref.current = new WebSocket(url)
 
             wsref.current.onopen = () => {
-                console.log("WebSocket connected")
+                // console.log("WebSocket connected")
                 setIsConnected(true);
                 setError(null)
                 reConnectAttempt.current = 0
@@ -87,7 +87,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
             wsref.current.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data) as RecieveMessage
-                    console.log("Received message: ", data)
+                    // console.log("Received message: ", data)
                     onMessageRef.current?.(data)
                 } catch (err) {
                     console.error('Error parsing WebSocket message:', err)
@@ -95,7 +95,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
             }
 
             wsref.current.onclose = (event) => {
-                console.log('WebSocket disconnected:', event.code, event.reason)
+                // console.log('WebSocket disconnected:', event.code, event.reason)
                 setIsConnected(false)
                 isConnectingRef.current = false
                 onDisconnectRef.current?.()
@@ -104,7 +104,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
 
                 if (event.code !== 1000 && reConnectAttempt.current < maxReconnectAttempt) {
                     const delay = Math.min(1000 * Math.pow(2, reConnectAttempt.current), 3000)
-                    console.log(`Attempting to reconnect in ${delay}ms... (attempt ${reConnectAttempt.current + 1}/${maxReconnectAttempt})`)
+                    // console.log(`Attempting to reconnect in ${delay}ms... (attempt ${reConnectAttempt.current + 1}/${maxReconnectAttempt})`)
                     reconnectTimeoutRef.current = setTimeout(() => {
                         reConnectAttempt.current++
                         connect()
@@ -149,7 +149,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
 
     const sendMessage = useCallback((message: wsMessage) => {
         if (wsref.current?.readyState === WebSocket.OPEN) {
-            console.log("Sending message: ", message)
+            // console.log("Sending message: ", message)
             wsref.current.send(JSON.stringify(message))
             return true
         } else {
@@ -160,7 +160,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
 
     const subscribeToRoom = useCallback((room: string) => {
         if (wsref.current?.readyState === WebSocket.OPEN) {
-            console.log("Sending subscription: ", { type: 'SUBSCRIBE', room })
+            // console.log("Sending subscription: ", { type: 'SUBSCRIBE', room })
             wsref.current.send(JSON.stringify({ type: 'SUBSCRIBE', room }))
             return true
         } else {
@@ -171,7 +171,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
 
     const unsubscribeToRoom = useCallback((room: string) => {
         if (wsref.current?.readyState === WebSocket.OPEN) {
-            console.log("Sending unsubscription: ", { type: 'UNSUBSCRIBE', room })
+            // console.log("Sending unsubscription: ", { type: 'UNSUBSCRIBE', room })
             wsref.current.send(JSON.stringify({ type: 'UNSUBSCRIBE', room }))
             return true
         } else {
@@ -188,7 +188,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
         userId: string
     }) => {
         if (wsref.current?.readyState === WebSocket.OPEN) {
-            console.log("Sending chat message: ", { type: 'sendMessage', roomId, message })
+            // console.log("Sending chat message: ", { type: 'sendMessage', roomId, message })
             wsref.current.send(JSON.stringify({ type: 'sendMessage', roomId, message }))
             return true
         } else {
@@ -199,7 +199,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
 
     const joinRoom = useCallback((roomId: string, username: string) => {
         if (wsref.current?.readyState === WebSocket.OPEN) {
-            console.log("User joining room: ", { type: 'USER_JOIN', roomId, username })
+            // console.log("User joining room: ", { type: 'USER_JOIN', roomId, username })
             wsref.current.send(JSON.stringify({ type: 'USER_JOIN', roomId, username }))
             return true
         } else {
@@ -210,7 +210,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
 
     const leaveRoom = useCallback((roomId: string, username: string) => {
         if (wsref.current?.readyState === WebSocket.OPEN) {
-            console.log("User leaving room: ", { type: 'USER_LEAVE', roomId, username })
+            // console.log("User leaving room: ", { type: 'USER_LEAVE', roomId, username })
             wsref.current.send(JSON.stringify({ type: 'USER_LEAVE', roomId, username }))
             return true
         } else {
@@ -229,7 +229,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
 
     const sendTyping = useCallback((roomId: string, username: string) => {
         if (wsref.current?.readyState === WebSocket.OPEN) {
-            console.log("User started typing: ", { type: 'USER_TYPING', roomId, username })
+            // console.log("User started typing: ", { type: 'USER_TYPING', roomId, username })
             wsref.current.send(JSON.stringify({ type: 'USER_TYPING', roomId, username }))
             return true
         } else {
@@ -240,7 +240,7 @@ export const useWebsocket = ({ url, onMessage, onConnect, onDisconnect }: useWeb
 
     const sendStopTyping = useCallback((roomId: string, username: string) => {
         if (wsref.current?.readyState === WebSocket.OPEN) {
-            console.log("User stopped typing: ", { type: 'USER_STOP_TYPING', roomId, username })
+            // console.log("User stopped typing: ", { type: 'USER_STOP_TYPING', roomId, username })
             wsref.current.send(JSON.stringify({ type: 'USER_STOP_TYPING', roomId, username }))
             return true
         } else {
