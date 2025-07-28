@@ -205,12 +205,19 @@ export const useChat = ({ roomId, username }: UseChatProps) => {
         if (!input.trim() || !isConnected) return
 
         const messageId = uuidv4()
-        const messageData: any = {
+        const messageData = {
             id: messageId,
             content: input.trim(),
             username,
             timestamp: new Date().toISOString(),
             userId: uuidv4()
+        } as {
+            id: string;
+            content: string;
+            username: string;
+            timestamp: string;
+            userId: string;
+            replyTo?: { id: string; username: string; content: string };
         }
         if (replyTo) messageData.replyTo = replyTo
 

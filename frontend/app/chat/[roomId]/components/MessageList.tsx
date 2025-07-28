@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { formatTime, getInitials, getAvatarColor } from "../utils"
 import { TypingIndicator } from "./TypingIndicator"
 import type { MessageListProps, Message } from "../types"
+import Image from "next/image"
 
 // Simple skeleton loader component
 const ImageSkeleton = () => (
@@ -20,7 +21,7 @@ export interface MessageListWithReplyProps extends MessageListProps {
 }
 
 export const MessageList: React.FC<MessageListWithReplyProps> = (props) => {
-  const { messages, messagesEndRef, typingUsers = [], currentUsername, onReply, replyingTo } = props;
+  const { messages, messagesEndRef, typingUsers = [], currentUsername, onReply } = props;
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [localMessages, setLocalMessages] = useState<Message[]>(messages);
@@ -158,11 +159,13 @@ export const MessageList: React.FC<MessageListWithReplyProps> = (props) => {
                     <ImageSkeleton />
                   ) : message.imageUrl ? (
                     <div className="relative group">
-                      <img
+                      <Image
                         src={message.imageUrl}
                         alt="sent image"
                         className="max-w-xs rounded-lg cursor-pointer"
                         onClick={() => handleEnlarge(message.imageUrl!)}
+                        width={300}
+                        height={200}
                       />
                     </div>
                   ) : (
@@ -193,7 +196,7 @@ export const MessageList: React.FC<MessageListWithReplyProps> = (props) => {
       {showModal && modalImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={closeModal}>
           <div className="bg-white rounded-lg p-4 max-w-lg w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
-            <img src={modalImage} alt="enlarged" className="max-h-[70vh] rounded-lg mb-4" />
+            <Image src={modalImage} alt="enlarged" className="max-h-[70vh] rounded-lg mb-4" width={200} height={200} />
             <div className="flex gap-4">
               <button onClick={() => handleDownload(modalImage)} className="px-3 py-1 flex c items-center bg-gray-200 rounded hover:bg-green-200">
                 <svg className="w-8 h-8 cursor-pointer" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M352 96C352 78.3 337.7 64 320 64C302.3 64 288 78.3 288 96L288 306.7L246.6 265.3C234.1 252.8 213.8 252.8 201.3 265.3C188.8 277.8 188.8 298.1 201.3 310.6L297.3 406.6C309.8 419.1 330.1 419.1 342.6 406.6L438.6 310.6C451.1 298.1 451.1 277.8 438.6 265.3C426.1 252.8 405.8 252.8 393.3 265.3L352 306.7L352 96zM160 384C124.7 384 96 412.7 96 448L96 480C96 515.3 124.7 544 160 544L480 544C515.3 544 544 515.3 544 480L544 448C544 412.7 515.3 384 480 384L433.1 384L376.5 440.6C345.3 471.8 294.6 471.8 263.4 440.6L206.9 384L160 384zM464 440C477.3 440 488 450.7 488 464C488 477.3 477.3 488 464 488C450.7 488 440 477.3 440 464C440 450.7 450.7 440 464 440z" /></svg>

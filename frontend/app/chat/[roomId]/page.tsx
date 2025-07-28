@@ -35,7 +35,6 @@ export default function ChatRoom() {
         copied,
         showUsersList,
         setShowUsersList,
-        scrollAreaRef,
         messagesEndRef,
         isConnected,
         error,

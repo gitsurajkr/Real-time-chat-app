@@ -2,8 +2,8 @@ export interface Message {
     id: string
     content: string
     username: string
-    timestamp: Date
-    isOwn: boolean,
+    timestamp: Date 
+    isOwn?: boolean,
     imageUrl?: string
     isUploading?: boolean;
     replyTo?: {
