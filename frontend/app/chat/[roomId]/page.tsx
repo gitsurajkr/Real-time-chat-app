@@ -1,5 +1,10 @@
 "use client"
 
+import type { Message } from "./types"
+
+
+import React from "react"
+
 import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { v4 as uuidv4 } from 'uuid'
@@ -34,13 +39,16 @@ export default function ChatRoom() {
         messagesEndRef,
         isConnected,
         error,
-        handleSubmit,
+        handleSubmit: baseHandleSubmit,
         copyRoomId,
         typingUsers,
         handleTyping,
         handleStopTyping,
         handleSendImage
     } = useChat({ roomId, username })
+
+    // Reply state
+    const [replyingTo, setReplyingTo] = React.useState<Message | null>(null)
 
     const handleBackClick = () => {
         router.push("/")
@@ -52,6 +60,26 @@ export default function ChatRoom() {
 
     const handleCloseUsersList = () => {
         setShowUsersList(false)
+    }
+
+    // Custom handleSubmit to include reply info
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!input.trim() || !isConnected) return
+
+        // Compose replyTo info if replying
+        let replyTo: { id: string; username: string; content: string } | undefined = undefined;
+        if (replyingTo) {
+            replyTo = {
+                id: replyingTo.id,
+                username: replyingTo.username,
+                content: replyingTo.content
+            }
+        }
+
+        // Call base handleSubmit with replyTo
+        baseHandleSubmit(e, replyTo)
+        setReplyingTo(null)
     }
 
     return (
@@ -96,6 +124,8 @@ export default function ChatRoom() {
                             messagesEndRef={messagesEndRef}
                             typingUsers={typingUsers}
                             currentUsername={username}
+                            onReply={(msg) => setReplyingTo(msg)}
+                            replyingTo={replyingTo}
                         />
 
                         {/* Message Input */}
@@ -107,6 +137,8 @@ export default function ChatRoom() {
                             onTyping={handleTyping}
                             onStopTyping={handleStopTyping}
                             onSendImage={handleSendImage}
+                            replyingTo={replyingTo}
+                            onCancelReply={() => setReplyingTo(null)}
                         />
                     </CardContent>
                 </Card>

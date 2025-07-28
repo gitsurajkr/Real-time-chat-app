@@ -6,6 +6,11 @@ export interface Message {
     isOwn: boolean,
     imageUrl?: string
     isUploading?: boolean;
+    replyTo?: {
+        id: string;
+        username: string;
+        content: string;
+    };
 }
 
 export interface User {
@@ -28,6 +33,8 @@ export interface MessageInputProps {
     onTyping?: () => void
     onStopTyping?: () => void,
     onSendImage?: (file: File ) => void
+    replyingTo?: Message | null;
+    onCancelReply?: () => void;
 }
 
 export interface MessageListProps {

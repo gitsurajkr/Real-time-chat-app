@@ -199,18 +199,20 @@ export const useChat = ({ roomId, username }: UseChatProps) => {
 
 
 
-    const handleSubmit = (e: React.FormEvent) => {
+    // Accepts optional replyTo
+    const handleSubmit = (e: React.FormEvent, replyTo?: { id: string; username: string; content: string }) => {
         e.preventDefault()
         if (!input.trim() || !isConnected) return
 
         const messageId = uuidv4()
-        const messageData = {
+        const messageData: any = {
             id: messageId,
             content: input.trim(),
             username,
             timestamp: new Date().toISOString(),
             userId: uuidv4()
         }
+        if (replyTo) messageData.replyTo = replyTo
 
         // Send message via WebSocket to your backend
         const success = sendChatMessage(roomId, messageData)
@@ -223,6 +225,7 @@ export const useChat = ({ roomId, username }: UseChatProps) => {
                 username: messageData.username,
                 timestamp: new Date(messageData.timestamp),
                 isOwn: true,
+                replyTo: replyTo ? { ...replyTo } : undefined
             }
             setMessages((prev) => {
                 // Check if message already exists before adding

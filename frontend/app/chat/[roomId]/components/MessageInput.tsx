@@ -12,7 +12,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     isConnected,
     onTyping,
     onStopTyping,
-    onSendImage
+    onSendImage,
+    replyingTo,
+    onCancelReply
 }) => {
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const isTypingRef = useRef(false)
@@ -77,8 +79,16 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
     return (
         <div className="sticky bottom-0 border-t bg-white/95 backdrop-blur-sm p-2 md:p-4 flex-shrink-0 safe-area-inset-bottom">
+            {replyingTo && (
+                <div className="flex items-center bg-gray-100 border-l-4 border-green-500 px-3 py-2 mb-2 rounded-md relative">
+                    <div className="flex-1">
+                        <span className="font-semibold text-green-700 text-xs">{replyingTo.username}</span>
+                        <div className="text-xs text-gray-700 truncate max-w-xs">{replyingTo.content || '[image]'}</div>
+                    </div>
+                    <button type="button" onClick={onCancelReply} className="ml-2 text-gray-400 hover:text-red-500 text-lg font-bold">×</button>
+                </div>
+            )}
             <form onSubmit={handleSubmit} className="flex space-x-2">
-
                 <button
                     type="button"
                     onClick={handleImageClick}
@@ -87,7 +97,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 >
                     <Image src="/Imageicon.png" alt="image" width={35} height={35} className="rounded-md"/>
                 </button>
-
                 <Input
                     type="file"
                     accept="image/*"
@@ -95,7 +104,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                     className="hidden"
                     onChange={handleFileChange}
                 />
-
                 <Input
                     value={input}
                     onChange={handleInputChange}
