@@ -3,8 +3,6 @@ import { randomUUID } from "crypto"
 import { createClient } from "redis"
 import * as dotenv from "dotenv"
 
-
-
 dotenv.config();
 const redisSubscribedRooms = new Set<string>();
 
@@ -62,8 +60,21 @@ wss.on("connection", function connection(ws) {
     }
     console.log(`[CONNECTED] user ${id}`);
 
-    ws.on("message", async (data) => {
-        const parsedMessage = JSON.parse(data.toString())
+    ws.on("message", async (data, isBinary) => {
+       
+        if(isBinary){
+            
+            const roomid = subscription[id].rooms[0];
+            if(!roomid) return;
+
+            Object.entries(subscription).forEach(([uid, { ws, rooms }]) => {
+                if (rooms.includes(roomid) && ws.readyState === WebSocket.OPEN) {
+                    ws.send(data); 
+                }
+            });
+            return;
+        }
+         const parsedMessage = JSON.parse(data.toString())
         const type = parsedMessage.type;
 
         if (type === "SUBSCRIBE") {
@@ -275,7 +286,6 @@ function broadcastToRoom(roomId: string, message: any, excludeId?: string) {
     });
 }
 
-// Check for inactive users every 30 seconds and mark them offline
 setInterval(() => {
     const now = Date.now();
     const OFFLINE_THRESHOLD = 30000; // 30 seconds
