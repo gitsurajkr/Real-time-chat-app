@@ -41,7 +41,8 @@ export const useChat = ({ roomId, username }: UseChatProps) => {
                     username: data.message!.username,
                     timestamp: new Date(data.message!.timestamp),
                     isOwn: data.message!.username === username,
-                    imageUrl: data.message!.imageUrl // will be undefined for text
+                    imageUrl: data.message!.imageUrl, // will be undefined for text
+                    ...(data.message && (data.message as any).replyTo ? { replyTo: { ...(data.message as any).replyTo } } : {})
                 };
                 setMessages((prev) => {
                     const messageExists = prev.find(msg => msg.id === newMessage.id);
