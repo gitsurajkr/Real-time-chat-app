@@ -27,6 +27,11 @@ export interface RecieveMessage {
         timestamp: string,
         userId: string,
         imageUrl?: string
+        replyTo?: {
+            id: string,
+            username: string,
+            content: string 
+        }
     }
 }
 
